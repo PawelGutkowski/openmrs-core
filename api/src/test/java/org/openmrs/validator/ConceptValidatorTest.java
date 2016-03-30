@@ -202,6 +202,35 @@ public class ConceptValidatorTest extends BaseContextSensitiveTest {
 		Assert.assertEquals(false, errors.hasErrors());
 	}
 	
+	@Test
+	@Verifies(value = "should pass if the duplicate ConceptName is neither preferred nor fully Specified", method = "validate(Object,Errors)")
+	public void validate_shouldPassIfTheDuplicateConceptNameIsNeitherPreferredNorFullySpecifiedFix() throws Exception {
+		Context.setLocale(new Locale("en"));
+		Concept concept = Context.getConceptService().getConcept(5497);
+		//use a synonym as the duplicate name
+		ConceptName preferredName = concept.getPreferredName(Context.getLocale());
+		Assert.assertEquals(true, preferredName.isLocalePreferred());
+		
+		//create new name object with same name string as first concept preferred name
+		ConceptName duplicateName = new ConceptName(preferredName.getName(), Context.getLocale());
+		duplicateName.setConceptNameType(ConceptNameType.INDEX_TERM);
+		
+		//create new, not persisted yet Concept
+		Concept anotherConcept = new Concept();
+		anotherConcept.setConceptClass(Context.getConceptService().getConceptClass(2));
+		anotherConcept.setDatatype(Context.getConceptService().getConceptDatatypeByName("Numeric"));
+		anotherConcept.addName(new ConceptName("fullname", Context.getLocale()));
+		anotherConcept.addName(duplicateName);
+		anotherConcept.getIndexTermsForLocale(Context.getLocale()).iterator().next().setConcept(null);
+		
+		Errors errors = new BindException(anotherConcept, "concept");
+		//it fails
+		new ConceptValidator().validate(anotherConcept, errors);
+		Assert.assertEquals(false, errors.hasErrors());
+	}
+	
+	
+	
 	/**
 	 * @see {@link ConceptValidator#validate(Object,Errors)}
 	 */
